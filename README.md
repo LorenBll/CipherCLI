@@ -74,5 +74,8 @@ The CLI reads `resources/configuration.json` for these settings:
 
 - DiskIdentifier is not required for CipherCLI to function. When DiskIdentifier is running and reachable on the loopback interface (see `diskidentifierPort` in resources/configuration.json), CipherCLI can resolve "ultimate" paths by querying DiskIdentifier.
 
+## License
+- [LICENSE](LICENSE)
+
 ## Author
 - [LorenBll](https://github.com/LorenBll)
