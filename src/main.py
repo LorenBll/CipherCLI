@@ -16,7 +16,7 @@ from models import GetRequest, GetResponse, PostRequest, PostResponse
 logger = logging.getLogger(__name__)
 
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "resources" / "configuration.json"
-DEFAULT_CIPHER_PORT = 49160
+DEFAULT_CIPHER_PORT = 49158
 DEFAULT_DISKIDENTIFIER_PORT = 49157
 LOOPBACK_HOST = "127.0.0.1"
 
