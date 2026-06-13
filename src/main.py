@@ -448,16 +448,47 @@ def _run_cipher_mode(
 	overwrite = bool(getattr(args, "overwrite_file", False))
 	output_file_path_arg = getattr(args, "output_file_path", None)
 	output_file_paths_arg = getattr(args, "output_file_paths", None)
+	output_dir_arg = getattr(args, "output_dir", None)
+
+	file_name_flag_dash = file_name_flag_field.replace("_", "-")
+
+	# --overwrite-file excludes --output-file-path, --output-file-paths, --output-dir
+	if overwrite:
+		if output_file_path_arg:
+			raise CipherCliError("--overwrite-file cannot be combined with --output-file-path.")
+		if output_file_paths_arg:
+			raise CipherCliError("--overwrite-file cannot be combined with --output-file-paths.")
+		if output_dir_arg:
+			raise CipherCliError("--overwrite-file cannot be combined with --output-dir.")
+
+	# --encrypt-file-name/--decrypt-file-name excludes --output-file-path, --output-file-paths
+	if file_name_flag_value:
+		if output_file_path_arg:
+			raise CipherCliError(f"--{file_name_flag_dash} cannot be combined with --output-file-path.")
+		if output_file_paths_arg:
+			raise CipherCliError(f"--{file_name_flag_dash} cannot be combined with --output-file-paths.")
+
+	# --output-dir excludes --overwrite-file, --output-file-path, --output-file-paths
+	if output_dir_arg:
+		if overwrite:
+			raise CipherCliError("--output-dir cannot be combined with --overwrite-file.")
+		if output_file_path_arg:
+			raise CipherCliError("--output-dir cannot be combined with --output-file-path.")
+		if output_file_paths_arg:
+			raise CipherCliError("--output-dir cannot be combined with --output-file-paths.")
 
 	# Validate output path requirements according to Cipher API rules
 	if not file_name_flag_value and not overwrite:
-		if not output_file_path_arg and not output_file_paths_arg:
+		if not output_file_path_arg and not output_file_paths_arg and not output_dir_arg:
 			raise CipherCliError(
-				"When filename transformation is disabled and overwrite is false, you must provide output paths via --output-file-path or --output-file-paths."
+				"When filename transformation is disabled and overwrite is false, you must provide output paths via --output-file-path, --output-file-paths, or --output-dir."
 			)
 
 	normalized_output_paths: list[str] | None = None
-	if output_file_paths_arg:
+	if output_dir_arg:
+		output_dir = _normalize_cli_path(output_dir_arg, diskidentifier_port)
+		normalized_output_paths = [str(output_dir / path.name) for path in file_paths]
+	elif output_file_paths_arg:
 		if len(output_file_paths_arg) != len(file_paths):
 			raise CipherCliError("The number of --output-file-paths must match the number of input files.")
 		normalized_output_paths = [str(_normalize_cli_path(p, diskidentifier_port)) for p in output_file_paths_arg]
@@ -514,7 +545,7 @@ def _build_parser() -> argparse.ArgumentParser:
 	subparsers = parser.add_subparsers(dest="mode")
 
 	parser_c = subparsers.add_parser("c", help="Cipher files.")
-	parser_c.description = "Cipher files."
+	parser_c.description = "Encrypt files. See mutually exclusive flag rules below."
 	parser_c.add_argument("key_path", nargs="?", help="Absolute key file path (raw or ultimate path).")
 	parser_c.add_argument(
 		"file_paths",
@@ -524,25 +555,29 @@ def _build_parser() -> argparse.ArgumentParser:
 	parser_c.add_argument(
 		"--encrypt-file-name",
 		action="store_true",
-		help="Encrypt output file names as well. Defaults to false.",
+		help="Encrypt output file names as well. Cannot be combined with --output-file-path or --output-file-paths.",
 	)
 	parser_c.add_argument(
 		"--overwrite-file",
 		action="store_true",
-		help="Write encrypted output into the source file (in-place). Defaults to false.",
+		help="Write encrypted output into the source file (in-place). Cannot be combined with --output-file-path, --output-file-paths or --output-dir.",
 	)
 	parser_c.add_argument(
 		"--output-file-path",
-		help="Single absolute output file path when one input file is provided.",
+		help="Single absolute output file path when one input file is provided. Cannot be combined with --encrypt-file-name, --overwrite-file or --output-dir.",
 	)
 	parser_c.add_argument(
 		"--output-file-paths",
 		nargs="+",
-		help="One output path per input file. Must match number of input files.",
+		help="One output path per input file (must match number of input files). Cannot be combined with --encrypt-file-name, --overwrite-file or --output-dir.",
+	)
+	parser_c.add_argument(
+		"--output-dir",
+		help="Output directory; generates output paths inside it using input file names. Cannot be combined with --overwrite-file, --output-file-path or --output-file-paths.",
 	)
 
 	parser_d = subparsers.add_parser("d", help="Decipher files.")
-	parser_d.description = "Decipher files."
+	parser_d.description = "Decrypt files. See mutually exclusive flag rules below."
 	parser_d.add_argument("key_path", nargs="?", help="Absolute key file path (raw or ultimate path).")
 	parser_d.add_argument(
 		"file_paths",
@@ -552,21 +587,25 @@ def _build_parser() -> argparse.ArgumentParser:
 	parser_d.add_argument(
 		"--decrypt-file-name",
 		action="store_true",
-		help="Decrypt output file names as well. Defaults to false.",
+		help="Decrypt output file names as well. Cannot be combined with --output-file-path or --output-file-paths.",
 	)
 	parser_d.add_argument(
 		"--overwrite-file",
 		action="store_true",
-		help="Write decrypted output into the source file (in-place). Defaults to false.",
+		help="Write decrypted output into the source file (in-place). Cannot be combined with --output-file-path, --output-file-paths or --output-dir.",
 	)
 	parser_d.add_argument(
 		"--output-file-path",
-		help="Single absolute output file path when one input file is provided.",
+		help="Single absolute output file path when one input file is provided. Cannot be combined with --decrypt-file-name, --overwrite-file or --output-dir.",
 	)
 	parser_d.add_argument(
 		"--output-file-paths",
 		nargs="+",
-		help="One output path per input file. Must match number of input files.",
+		help="One output path per input file (must match number of input files). Cannot be combined with --decrypt-file-name, --overwrite-file or --output-dir.",
+	)
+	parser_d.add_argument(
+		"--output-dir",
+		help="Output directory; generates output paths inside it using input file names. Cannot be combined with --overwrite-file, --output-file-path or --output-file-paths.",
 	)
 
 	parser_ck = subparsers.add_parser("ck", help="Create a key.")

@@ -34,28 +34,30 @@ Example:
 cip ck C:\Cipher\keys mykey.key
 ```
 
-### `cip c <key_path> <file_path...> [--encrypt-file-name] [--overwrite-file] [--output-file-path|--output-file-paths]`
+### `cip c <key_path> <file_path...> [--encrypt-file-name] [--overwrite-file] [--output-file-path|--output-file-paths|--output-dir]`
 Encrypt one or more files through `POST /api/encrypt`.
 
 - `key_path` must reference an existing key file.
 - `file_path` accepts one or more absolute file paths.
-- `--encrypt-file-name` is optional and defaults to `false`. When provided, the CLI sends `encrypt_file_name: true` to Cipher so output file names are encrypted.
-- `--overwrite-file` is optional and defaults to `false`. When provided, encrypted content is written back into the source file (in-place) and no output path is required.
-- `--output-file-path` is an optional single absolute path used when exactly one input file is provided. It maps to the `output_file_path` field in the API.
-- `--output-file-paths` is an optional list of absolute paths, one per input file, and maps to `output_file_paths` in the API.
-- Note: when `--encrypt-file-name` is not provided (false) and `--overwrite-file` is not provided (false), you must supply either `--output-file-path` (single input) or `--output-file-paths` (matching number of input files) per the Cipher API requirements.
+- `--encrypt-file-name` encrypts output file names. Cannot be combined with `--output-file-path` or `--output-file-paths`.
+- `--overwrite-file` writes encrypted content into the source file (in-place). Cannot be combined with `--output-file-path`, `--output-file-paths`, or `--output-dir`.
+- `--output-file-path` is a single absolute output path for one input file. Cannot be combined with `--encrypt-file-name`, `--overwrite-file`, or `--output-dir`.
+- `--output-file-paths` is a list of absolute paths, one per input file. Cannot be combined with `--encrypt-file-name`, `--overwrite-file`, or `--output-dir`.
+- `--output-dir` is an output directory; the CLI generates `output_dir / input_file.name` for each input file and sends them as `output_file_paths`. Cannot be combined with `--overwrite-file`, `--output-file-path`, or `--output-file-paths`. Compatible with `--encrypt-file-name`.
+- Note: when none of `--encrypt-file-name`, `--overwrite-file`, `--output-file-path`, `--output-file-paths`, or `--output-dir` are provided and `--encrypt-file-name`/`--overwrite-file` are false, you must supply one of the output path options per the Cipher API requirements.
 - After the task is queued, the CLI polls `GET /api/task/<task_id>` until the job finishes.
 
-### `cip d <key_path> <file_path...> [--decrypt-file-name] [--overwrite-file] [--output-file-path|--output-file-paths]`
+### `cip d <key_path> <file_path...> [--decrypt-file-name] [--overwrite-file] [--output-file-path|--output-file-paths|--output-dir]`
 Decrypt one or more files through `POST /api/decrypt`.
 
 - `key_path` must reference an existing key file.
 - `file_path` accepts one or more absolute file paths.
-- `--decrypt-file-name` is optional and defaults to `false`. When provided, the CLI sends `decrypt_file_name: true` to Cipher so encrypted file names are decrypted.
-- `--overwrite-file` is optional and defaults to `false`. When provided, decrypted content is written back into the source file (in-place) and no output path is required.
-- `--output-file-path` is an optional single absolute path used when exactly one input file is provided. It maps to the `output_file_path` field in the API.
-- `--output-file-paths` is an optional list of absolute paths, one per input file, and maps to `output_file_paths` in the API.
-- Note: when `--decrypt-file-name` is not provided (false) and `--overwrite-file` is not provided (false), you must supply either `--output-file-path` (single input) or `--output-file-paths` (matching number of input files) per the Cipher API requirements.
+- `--decrypt-file-name` decrypts output file names. Cannot be combined with `--output-file-path` or `--output-file-paths`.
+- `--overwrite-file` writes decrypted content into the source file (in-place). Cannot be combined with `--output-file-path`, `--output-file-paths`, or `--output-dir`.
+- `--output-file-path` is a single absolute output path for one input file. Cannot be combined with `--decrypt-file-name`, `--overwrite-file`, or `--output-dir`.
+- `--output-file-paths` is a list of absolute paths, one per input file. Cannot be combined with `--decrypt-file-name`, `--overwrite-file`, or `--output-dir`.
+- `--output-dir` is an output directory; the CLI generates `output_dir / input_file.name` for each input file and sends them as `output_file_paths`. Cannot be combined with `--overwrite-file`, `--output-file-path`, or `--output-file-paths`. Compatible with `--decrypt-file-name`.
+- Note: when none of `--decrypt-file-name`, `--overwrite-file`, `--output-file-path`, `--output-file-paths`, or `--output-dir` are provided and `--decrypt-file-name`/`--overwrite-file` are false, you must supply one of the output path options per the Cipher API requirements.
 - The CLI polls task status until the job completes or fails.
 
 ### `cip health`
