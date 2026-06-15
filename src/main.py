@@ -357,6 +357,26 @@ def _extract_error_message(payload: object, fallback: str) -> str:
 	return fallback
 
 
+def _parse_files_list(file_path: str) -> list[str]:
+	"""Read a file containing a list of file paths. Items can be separated by newlines, commas, or semicolons."""
+	try:
+		content = Path(file_path).read_text(encoding="utf-8")
+	except OSError as exc:
+		raise CipherCliError(f"Failed to read files list: {exc}") from exc
+
+	paths: list[str] = []
+	for line in content.splitlines():
+		for item in re.split(r"[,;]", line):
+			stripped = item.strip()
+			if stripped:
+				paths.append(stripped)
+
+	if not paths:
+		raise CipherCliError("Files list is empty.")
+
+	return paths
+
+
 def _normalize_existing_file_path(path_text: str, diskidentifier_port: int, field_name: str) -> Path:
 	"""Normalize a path and ensure it points to an existing file."""
 	normalized = _normalize_cli_path(path_text, diskidentifier_port)
@@ -575,6 +595,10 @@ def _build_parser() -> argparse.ArgumentParser:
 		"--output-dir",
 		help="Output directory; generates output paths inside it using input file names. Cannot be combined with --overwrite-file, --output-file-path or --output-file-paths.",
 	)
+	parser_c.add_argument(
+		"--files-list",
+		help="Path to a text file listing absolute file paths to encrypt. Items can be separated by newlines, commas, or semicolons. Cannot be combined with positional file paths.",
+	)
 
 	parser_d = subparsers.add_parser("d", help="Decipher files.")
 	parser_d.description = "Decrypt files. See mutually exclusive flag rules below."
@@ -606,6 +630,10 @@ def _build_parser() -> argparse.ArgumentParser:
 	parser_d.add_argument(
 		"--output-dir",
 		help="Output directory; generates output paths inside it using input file names. Cannot be combined with --overwrite-file, --output-file-path or --output-file-paths.",
+	)
+	parser_d.add_argument(
+		"--files-list",
+		help="Path to a text file listing absolute file paths to decrypt. Items can be separated by newlines, commas, or semicolons. Cannot be combined with positional file paths.",
 	)
 
 	parser_ck = subparsers.add_parser("ck", help="Create a key.")
@@ -656,7 +684,13 @@ def main() -> int:
 
 	if args.mode == "c":
 		try:
-			if args.key_path is None or not args.file_paths:
+			if args.key_path is None:
+				raise CipherCliError("Both key_path and at least one file_path are required.")
+			if args.files_list:
+				if args.file_paths:
+					raise CipherCliError("--files-list cannot be combined with positional file paths.")
+				args.file_paths = _parse_files_list(args.files_list)
+			elif not args.file_paths:
 				raise CipherCliError("Both key_path and at least one file_path are required.")
 			return _run_cipher_mode(
 				args,
@@ -673,7 +707,13 @@ def main() -> int:
 
 	if args.mode == "d":
 		try:
-			if args.key_path is None or not args.file_paths:
+			if args.key_path is None:
+				raise CipherCliError("Both key_path and at least one file_path are required.")
+			if args.files_list:
+				if args.file_paths:
+					raise CipherCliError("--files-list cannot be combined with positional file paths.")
+				args.file_paths = _parse_files_list(args.files_list)
+			elif not args.file_paths:
 				raise CipherCliError("Both key_path and at least one file_path are required.")
 			return _run_cipher_mode(
 				args,
