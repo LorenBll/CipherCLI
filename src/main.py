@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "resources" / "configuration.json"
 DEFAULT_CIPHER_PORT = 49158
 DEFAULT_DISKIDENTIFIER_PORT = 49157
+DEFAULT_PORTHANDLER_PORT = 49155
 LOOPBACK_HOST = "127.0.0.1"
 
 
@@ -62,6 +63,40 @@ def _parse_config_port(value: object, field_name: str, default_value: int) -> in
 		raise CipherCliError(f"{field_name} in configuration.json must be between 1 and 65535.")
 
 	return parsed_value
+
+
+def _parse_config_bool(value: object, field_name: str, default_value: bool) -> bool:
+	"""Parse a boolean from configuration."""
+	if value is None:
+		return default_value
+	if isinstance(value, bool):
+		return value
+	if isinstance(value, str):
+		return value.strip().lower() in ("true", "1", "yes")
+	if isinstance(value, int):
+		return value != 0
+	return default_value
+
+
+def _resolve_service_port(service_name: str, config_port: int, porthandler_port: int, porthandler_enabled: bool) -> int:
+	"""Resolve a service port, optionally via PortHandler, falling back to the configured port."""
+	if not porthandler_enabled:
+		return config_port
+
+	try:
+		response = _send_post_json(PostRequest(
+			url=f"http://{LOOPBACK_HOST}:{porthandler_port}/api/question",
+			body=json.dumps({"name": service_name}).encode("utf-8"),
+			timeout=5.0,
+		))
+		if response.status_code == 200 and isinstance(response.json_body, dict):
+			port = response.json_body.get("port")
+			if isinstance(port, int) and 1 <= port <= 65535:
+				return port
+	except CipherCliError:
+		pass
+
+	return config_port
 
 
 def _resolve_project_path(path_text: str, base_directory: Path) -> Path:
@@ -659,12 +694,21 @@ def main() -> int:
 
 	try:
 		config = _load_configuration()
-		cipher_port = _parse_config_port(config.get("cipherPort"), "cipherPort", DEFAULT_CIPHER_PORT)
-		diskidentifier_port = _parse_config_port(
+		config_cipher_port = _parse_config_port(config.get("cipherPort"), "cipherPort", DEFAULT_CIPHER_PORT)
+		config_diskidentifier_port = _parse_config_port(
 			config.get("diskidentifierPort"),
 			"diskidentifierPort",
 			DEFAULT_DISKIDENTIFIER_PORT,
 		)
+		porthandler_enabled = _parse_config_bool(config.get("porthandlerEnabled"), "porthandlerEnabled", False)
+		porthandler_port = _parse_config_port(
+			config.get("porthandlerPort"),
+			"porthandlerPort",
+			DEFAULT_PORTHANDLER_PORT,
+		)
+
+		cipher_port = _resolve_service_port("Cipher", config_cipher_port, porthandler_port, porthandler_enabled)
+		diskidentifier_port = _resolve_service_port("DiskIdentifier", config_diskidentifier_port, porthandler_port, porthandler_enabled)
 	except CipherCliError as exc:
 		print(f"Error: {exc}", file=sys.stderr)
 		return 1

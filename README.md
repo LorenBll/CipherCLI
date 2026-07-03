@@ -3,7 +3,7 @@
 CipherCLI is a local command-line client for the Cipher service. It can create Fernet keys, encrypt or decrypt files through the loopback HTTP API, and query the service health endpoint with `cip health`.
 
 ## About
-CipherCLI is designed to run on the same machine as [Cipher](https://www.github.com/LorenBll/Cipher). It talks to `127.0.0.1` for both the Cipher API and the [DiskIdentifier](https://www.github.com/LorenBll/DiskIdentifier) service used to resolve ultimate paths. The ports are read from `resources/configuration.json`.
+CipherCLI is designed to run on the same machine as [Cipher](https://www.github.com/LorenBll/Cipher). It talks to `127.0.0.1` for both the Cipher API and the [DiskIdentifier](https://www.github.com/LorenBll/DiskIdentifier) service used to resolve ultimate paths. The ports are resolved from `resources/configuration.json` and optionally through [PortHandler](https://www.github.com/LorenBll/PortHandler).
 
 CipherCLI is a client for the web-service Cipher (https://www.github.com/LorenBll/Cipher).
 
@@ -11,7 +11,8 @@ CipherCLI is a client for the web-service Cipher (https://www.github.com/LorenBl
 1. Install the Python dependencies with `pip install -r requirements.txt`.
 2. Make sure the Cipher service is running locally before using `c`, `d`, or `health`.
 3. DiskIdentifier is optional — CipherCLI works without it. If you want to use ultimate paths, run DiskIdentifier locally so CipherCLI can resolve them via the configured `diskidentifierPort`.
-4. Keep the project structure intact so the CLI can find `resources/` and `src/`.
+4. PortHandler is optional — when `porthandlerEnabled` is `true`, CipherCLI queries PortHandler for the Cipher and DiskIdentifier ports and falls back to the configured ports if PortHandler is unreachable.
+5. Keep the project structure intact so the CLI can find `resources/` and `src/`.
 
 ## Run
 1. Windows: run `scripts\cip.bat`.
@@ -71,16 +72,18 @@ This is useful for checking the configured port, task counts, host information, 
 
 ## Configuration
 The CLI reads `resources/configuration.json` for these settings:
-- `cipherPort`: port used for the Cipher API.
-- `diskidentifierPort`: port used for DiskIdentifier.
+- `cipherPort`: port used for the Cipher API (default `49158`).
+- `diskidentifierPort`: port used for DiskIdentifier (default `49157`).
+- `porthandlerEnabled`: when `true`, CipherCLI tries to resolve ports through PortHandler before falling back to the configured ports (default `false`).
+- `porthandlerPort`: port used for PortHandler (default `49155`).
 
 ## Notes
 - Paths may be provided as raw absolute paths or as ultimate paths when DiskIdentifier is available.
 - The CLI is local-only and expects services to be reachable on the loopback interface.
 - All outbound HTTP requests use `Connection: close` (non-persistent connections), matching the server-side connection policy.
 - The Cipher service enforces local-device-only access. CipherCLI connects via `127.0.0.1`, so it is always permitted.
-
 - DiskIdentifier is not required for CipherCLI to function. When DiskIdentifier is running and reachable on the loopback interface (see `diskidentifierPort` in resources/configuration.json), CipherCLI can resolve "ultimate" paths by querying DiskIdentifier.
+- PortHandler is not required either. When `porthandlerEnabled` is `true`, CipherCLI queries PortHandler for the Cipher and DiskIdentifier ports. If PortHandler is unreachable, it falls back to `cipherPort` and `diskidentifierPort` from configuration.json.
 
 ## License
 - [LICENSE](LICENSE)
