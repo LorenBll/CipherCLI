@@ -77,6 +77,8 @@ The CLI reads `resources/configuration.json` for these settings:
 ## Notes
 - Paths may be provided as raw absolute paths or as ultimate paths when DiskIdentifier is available.
 - The CLI is local-only and expects services to be reachable on the loopback interface.
+- All outbound HTTP requests use `Connection: close` (non-persistent connections), matching the server-side connection policy.
+- The Cipher service enforces local-device-only access. CipherCLI connects via `127.0.0.1`, so it is always permitted.
 
 - DiskIdentifier is not required for CipherCLI to function. When DiskIdentifier is running and reachable on the loopback interface (see `diskidentifierPort` in resources/configuration.json), CipherCLI can resolve "ultimate" paths by querying DiskIdentifier.
 

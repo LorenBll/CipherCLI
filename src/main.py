@@ -113,6 +113,7 @@ def _send_post_json(http_request: PostRequest) -> PostResponse:
 	request_headers = {
 		"Content-Type": "application/json",
 		"Accept": "application/json",
+		"Connection": "close",
 		**http_request.headers,
 	}
 
@@ -158,6 +159,7 @@ def _send_get_json(http_request: GetRequest, body: dict | None = None) -> GetRes
 	request_headers = {
 		"Content-Type": "application/json",
 		"Accept": "application/json",
+		"Connection": "close",
 		**http_request.headers,
 	}
 	body_bytes = json.dumps(body or {}).encode("utf-8")
