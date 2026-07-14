@@ -6,6 +6,7 @@ import argparse
 import json
 import logging
 import re
+import socket
 import sys
 import time
 from pathlib import Path
@@ -78,23 +79,33 @@ def _parse_config_bool(value: object, field_name: str, default_value: bool) -> b
 	return default_value
 
 
+def _test_port_open(host: str, port: int, timeout: float = 2.0) -> bool:
+	"""Test if a TCP port is open on the given host."""
+	try:
+		with socket.create_connection((host, port), timeout=timeout):
+			return True
+	except (OSError, socket.timeout):
+		return False
+
+
 def _resolve_service_port(service_name: str, config_port: int, porthandler_port: int, porthandler_enabled: bool) -> int:
-	"""Resolve a service port, optionally via PortHandler, falling back to the configured port."""
-	if not porthandler_enabled:
+	"""Resolve a service port: try the configured port first, then fall back to PortHandler if enabled."""
+	if _test_port_open(LOOPBACK_HOST, config_port):
 		return config_port
 
-	try:
-		response = _send_post_json(PostRequest(
-			url=f"http://{LOOPBACK_HOST}:{porthandler_port}/api/question",
-			body=json.dumps({"name": service_name}).encode("utf-8"),
-			timeout=5.0,
-		))
-		if response.status_code == 200 and isinstance(response.json_body, dict):
-			port = response.json_body.get("port")
-			if isinstance(port, int) and 1 <= port <= 65535:
-				return port
-	except CipherCliError:
-		pass
+	if porthandler_enabled:
+		try:
+			response = _send_post_json(PostRequest(
+				url=f"http://{LOOPBACK_HOST}:{porthandler_port}/api/question",
+				body=json.dumps({"name": service_name}).encode("utf-8"),
+				timeout=5.0,
+			))
+			if response.status_code == 200 and isinstance(response.json_body, dict):
+				port = response.json_body.get("port")
+				if isinstance(port, int) and 1 <= port <= 65535:
+					return port
+		except CipherCliError:
+			pass
 
 	return config_port
 
