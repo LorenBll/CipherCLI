@@ -51,19 +51,13 @@ def _parse_config_port(value: object, field_name: str, default_value: int) -> in
 	if value is None:
 		return default_value
 
-	parsed_value = value
-	if isinstance(parsed_value, str):
-		parsed_value = parsed_value.strip()
-		if parsed_value.isdigit():
-			parsed_value = int(parsed_value)
-
-	if not isinstance(parsed_value, int):
+	if not isinstance(value, int):
 		raise CipherCliError(f"{field_name} in configuration.json must be an integer.")
 
-	if parsed_value < 1 or parsed_value > 65535:
+	if value < 1 or value > 65535:
 		raise CipherCliError(f"{field_name} in configuration.json must be between 1 and 65535.")
 
-	return parsed_value
+	return value
 
 
 def _parse_config_bool(value: object, field_name: str, default_value: bool) -> bool:
