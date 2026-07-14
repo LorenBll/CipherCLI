@@ -86,6 +86,8 @@ The CLI reads `resources/configuration.json` for these settings:
 - DiskIdentifier is not required for CipherCLI to function. When DiskIdentifier is running and reachable on the loopback interface (see `diskidentifierPort` in resources/configuration.json), CipherCLI can resolve "ultimate" paths by querying DiskIdentifier.
 - PortHandler is not required either. When `porthandlerEnabled` is `true`, CipherCLI first tries the configured `cipherPort` and `diskidentifierPort`. If a service is unreachable on its configured port, CipherCLI queries PortHandler for an alternative port.
 
+---
+
 ## License
 - [LICENSE](LICENSE)
 
