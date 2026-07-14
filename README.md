@@ -8,11 +8,12 @@ CipherCLI is designed to run on the same machine as [Cipher](https://www.github.
 CipherCLI is a client for the web-service Cipher (https://www.github.com/LorenBll/Cipher).
 
 ## Setup
-1. Install the Python dependencies with `pip install -r requirements.txt`.
-2. Make sure the Cipher service is running locally before using `c`, `d`, or `health`.
-3. DiskIdentifier is optional — CipherCLI works without it. If you want to use ultimate paths, run DiskIdentifier locally so CipherCLI can resolve them via the configured `diskidentifierPort`.
-4. PortHandler is optional — when `porthandlerEnabled` is `true`, CipherCLI first tries the configured ports and falls back to querying PortHandler if the service is unreachable on the configured port.
-5. Keep the project structure intact so the CLI can find `resources/` and `src/`.
+1. CipherCLI has no external Python dependencies — it uses only the standard library. If you also run the Cipher service locally, install its dependencies with `pip install -r requirements.txt`.
+2. Optionally run `scripts\setup.bat` (Windows) or `bash scripts/setup.sh` (Unix) to create a virtual environment and install dependencies.
+3. Make sure the Cipher service is running locally before using `c`, `d`, or `health`.
+4. DiskIdentifier is optional — CipherCLI works without it. If you want to use ultimate paths, run DiskIdentifier locally so CipherCLI can resolve them via the configured `diskidentifierPort`.
+5. PortHandler is optional — when `porthandlerEnabled` is `true`, CipherCLI first tries the configured ports and falls back to querying PortHandler if the service is unreachable on the configured port.
+6. Keep the project structure intact so the CLI can find `resources/` and `src/`.
 
 ## Run
 1. Windows: run `scripts\cip.bat`.
