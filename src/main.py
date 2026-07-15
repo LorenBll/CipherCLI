@@ -705,10 +705,10 @@ def main() -> int:
 			"diskidentifierPort",
 			DEFAULT_DISKIDENTIFIER_PORT,
 		)
-		servicehandler_enabled = _parse_config_bool(config.get("porthandlerEnabled"), "porthandlerEnabled", False)
+		servicehandler_enabled = _parse_config_bool(config.get("servicehandlerEnabled"), "servicehandlerEnabled", False)
 		servicehandler_port = _parse_config_port(
-			config.get("porthandlerPort"),
-			"porthandlerPort",
+			config.get("servicehandlerPort"),
+			"servicehandlerPort",
 			DEFAULT_SERVICEHANDLER_PORT,
 		)
 

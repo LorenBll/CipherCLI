@@ -1,6 +1,6 @@
 {
     "cipherPort": 49158,
     "diskidentifierPort": 49157,
-    "porthandlerEnabled": false,
-    "porthandlerPort": 49155
+    "servicehandlerEnabled": false,
+    "servicehandlerPort": 49155
 }
