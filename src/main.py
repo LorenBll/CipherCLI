@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "resources" / "configuration.json"
 DEFAULT_CIPHER_PORT = 49158
 DEFAULT_DISKIDENTIFIER_PORT = 49157
-DEFAULT_PORTHANDLER_PORT = 49155
+DEFAULT_SERVICEHANDLER_PORT = 49155
 LOOPBACK_HOST = "127.0.0.1"
 
 
@@ -82,15 +82,15 @@ def _test_port_open(host: str, port: int, timeout: float = 2.0) -> bool:
 		return False
 
 
-def _resolve_service_port(service_name: str, config_port: int, porthandler_port: int, porthandler_enabled: bool) -> int:
-	"""Resolve a service port: try the configured port first, then fall back to PortHandler if enabled."""
+def _resolve_service_port(service_name: str, config_port: int, servicehandler_port: int, servicehandler_enabled: bool) -> int:
+	"""Resolve a service port: try the configured port first, then fall back to ServiceHandler if enabled."""
 	if _test_port_open(LOOPBACK_HOST, config_port):
 		return config_port
 
-	if porthandler_enabled:
+	if servicehandler_enabled:
 		try:
 			response = _send_post_json(PostRequest(
-				url=f"http://{LOOPBACK_HOST}:{porthandler_port}/api/question",
+				url=f"http://{LOOPBACK_HOST}:{servicehandler_port}/api/question",
 				body=json.dumps({"name": service_name}).encode("utf-8"),
 				timeout=5.0,
 			))
@@ -705,15 +705,15 @@ def main() -> int:
 			"diskidentifierPort",
 			DEFAULT_DISKIDENTIFIER_PORT,
 		)
-		porthandler_enabled = _parse_config_bool(config.get("porthandlerEnabled"), "porthandlerEnabled", False)
-		porthandler_port = _parse_config_port(
+		servicehandler_enabled = _parse_config_bool(config.get("porthandlerEnabled"), "porthandlerEnabled", False)
+		servicehandler_port = _parse_config_port(
 			config.get("porthandlerPort"),
 			"porthandlerPort",
-			DEFAULT_PORTHANDLER_PORT,
+			DEFAULT_SERVICEHANDLER_PORT,
 		)
 
-		cipher_port = _resolve_service_port("Cipher", config_cipher_port, porthandler_port, porthandler_enabled)
-		diskidentifier_port = _resolve_service_port("DiskIdentifier", config_diskidentifier_port, porthandler_port, porthandler_enabled)
+		cipher_port = _resolve_service_port("Cipher", config_cipher_port, servicehandler_port, servicehandler_enabled)
+		diskidentifier_port = _resolve_service_port("DiskIdentifier", config_diskidentifier_port, servicehandler_port, servicehandler_enabled)
 	except CipherCliError as exc:
 		print(f"Error: {exc}", file=sys.stderr)
 		return 1
