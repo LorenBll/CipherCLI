@@ -88,6 +88,9 @@ The CLI reads `resources/configuration.json` for these settings:
 
 ---
 
+## Support
+- Open an issue on [GitHub](https://github.com/LorenBll/CipherCLI/issues) for bug reports, feature requests, or help.
+
 ## License
 - [LICENSE](LICENSE)
 
