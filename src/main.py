@@ -90,7 +90,7 @@ def _resolve_service_port(service_name: str, config_port: int, servicehandler_po
 	if servicehandler_enabled:
 		try:
 			response = _send_post_json(PostRequest(
-				url=f"http://{LOOPBACK_HOST}:{servicehandler_port}/api/question",
+				url=f"http://{LOOPBACK_HOST}:{servicehandler_port}/api/question/service",
 				body=json.dumps({"name": service_name}).encode("utf-8"),
 				timeout=5.0,
 			))
