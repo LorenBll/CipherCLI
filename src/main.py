@@ -256,7 +256,7 @@ def _resolve_ultimate_path_to_raw(path_text: str, diskidentifier_port: int) -> P
 	"""Resolve an ultimate path to a raw absolute path by calling DiskIdentifier."""
 	disk_hash, suffix = _path_suffix_without_disk_hash(path_text)
 	locate_request = GetRequest(
-		url=f"http://{LOOPBACK_HOST}:{diskidentifier_port}/api/locate",
+		url=f"http://{LOOPBACK_HOST}:{diskidentifier_port}/api/locate/disk",
 		timeout=15.0,
 	)
 	locate_response = _send_get_json(locate_request, body={"disk_identifier": disk_hash})
