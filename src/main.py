@@ -158,26 +158,18 @@ def _send_post_json(http_request: PostRequest) -> PostResponse:
 		with request.urlopen(urllib_request, timeout=http_request.timeout) as response:
 			response_body_bytes = response.read()
 			response_body = response_body_bytes.decode("utf-8", errors="replace")
-			response_headers = dict(response.headers.items())
 			parsed_json = _try_parse_json(response_body)
 			return PostResponse(
 				status_code=response.status,
-				reason=getattr(response, "reason", ""),
 				body=response_body,
-				body_size=len(response_body_bytes),
-				headers=response_headers,
 				json_body=parsed_json,
 			)
 	except error.HTTPError as exc:
 		error_body_bytes = exc.read()
 		error_body = error_body_bytes.decode("utf-8", errors="replace")
-		response_headers = dict(exc.headers.items()) if exc.headers else {}
 		return PostResponse(
 			status_code=exc.code,
-			reason=exc.reason if isinstance(exc.reason, str) else "",
 			body=error_body,
-			body_size=len(error_body_bytes),
-			headers=response_headers,
 			json_body=_try_parse_json(error_body),
 		)
 	except error.URLError as exc:
@@ -205,26 +197,18 @@ def _send_get_json(http_request: GetRequest, body: dict | None = None) -> GetRes
 		with request.urlopen(urllib_request, timeout=http_request.timeout) as response:
 			response_body_bytes = response.read()
 			response_body = response_body_bytes.decode("utf-8", errors="replace")
-			response_headers = dict(response.headers.items())
 			parsed_json = _try_parse_json(response_body)
 			return GetResponse(
 				status_code=response.status,
-				reason=getattr(response, "reason", ""),
 				body=response_body,
-				body_size=len(response_body_bytes),
-				headers=response_headers,
 				json_body=parsed_json,
 			)
 	except error.HTTPError as exc:
 		error_body_bytes = exc.read()
 		error_body = error_body_bytes.decode("utf-8", errors="replace")
-		response_headers = dict(exc.headers.items()) if exc.headers else {}
 		return GetResponse(
 			status_code=exc.code,
-			reason=exc.reason if isinstance(exc.reason, str) else "",
 			body=error_body,
-			body_size=len(error_body_bytes),
-			headers=response_headers,
 			json_body=_try_parse_json(error_body),
 		)
 	except error.URLError as exc:
