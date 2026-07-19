@@ -1,6 +1,6 @@
 # CipherCLI
 
-CipherCLI is a local command-line client for the Cipher service. It can create Fernet keys, encrypt or decrypt files through the loopback HTTP API, and query the service health endpoint with `cip health`.
+CipherCLI is a local command-line client for the Cipher service. It can create keys, encrypt or decrypt files through the loopback HTTP API, and query the service health endpoint with `cip health`.
 
 ## About
 CipherCLI is designed to run on the same machine as [Cipher](https://www.github.com/LorenBll/Cipher). It talks to `127.0.0.1` for both the Cipher API and the [DiskIdentifier](https://www.github.com/LorenBll/DiskIdentifier) service used to resolve ultimate paths. The ports are resolved from `resources/configuration.json` and optionally through [ServiceHandler](https://www.github.com/LorenBll/ServiceHandler).
@@ -23,7 +23,7 @@ CipherCLI is a client for the web-service Cipher (https://www.github.com/LorenBl
 ## Usage
 
 ### `cip ck <path> [file_name]`
-Create a new Fernet key file through `POST /api/key`.
+Create a new key file through `POST /api/key`.
 
 - `path` can be either:
   - an absolute file path for the new key, or

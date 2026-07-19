@@ -14,8 +14,6 @@ from urllib import error, request
 
 from models import GetRequest, GetResponse, PostRequest, PostResponse
 
-logger = logging.getLogger(__name__)
-
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "resources" / "configuration.json"
 DEFAULT_CIPHER_PORT = 49158
 DEFAULT_DISKIDENTIFIER_PORT = 49157
@@ -102,14 +100,6 @@ def _resolve_service_port(service_name: str, config_port: int, servicehandler_po
 			pass
 
 	return config_port
-
-
-def _resolve_project_path(path_text: str, base_directory: Path) -> Path:
-	"""Resolve a path from configuration relative to the project root."""
-	candidate = Path(path_text.strip())
-	if candidate.is_absolute():
-		return candidate
-	return (base_directory / candidate).resolve(strict=False)
 
 
 def _looks_like_windows_raw_absolute(path_text: str) -> bool:
