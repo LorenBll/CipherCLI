@@ -91,24 +91,20 @@ if errorlevel 1 (
 
 echo Installing dependencies...
 python -m pip install --quiet --upgrade pip >nul 2>&1
-set "REQ_FILE=.requirements.setup.txt"
-findstr /v /i "^brotli==" requirements.txt > "%REQ_FILE%"
-python -m pip install --quiet -r "%REQ_FILE%" >nul 2>&1
+python -m pip install --quiet -r requirements.txt >nul 2>&1
 if errorlevel 1 (
   echo ERROR: Failed to install dependencies.
   echo Check network and requirements.txt.
   echo.
-  if exist "%REQ_FILE%" del /q "%REQ_FILE%" >nul 2>&1
   pause
   exit /b 1
 )
-if exist "%REQ_FILE%" del /q "%REQ_FILE%" >nul 2>&1
 echo Dependencies installed.
 
 echo.
 echo Checking configuration...
 if not exist "resources\configuration.json" (
-  echo WARNING: Create resources\configuration.json before running ServiceHub.
+  echo WARNING: Create resources\configuration.json before running CipherCLI.
 ) else (
   echo Configuration file found.
 )
@@ -118,7 +114,7 @@ echo ===============================================
 echo   CipherCLI Setup Complete
 echo ===============================================
 echo.
-echo Next: python src\main.py ck C:\\path\\to\\key.key
+echo Next: scripts\cip.bat
 echo.
 pause
 endlocal

@@ -14,6 +14,8 @@ from urllib import error, request
 
 from models import GetRequest, GetResponse, PostRequest, PostResponse
 
+logger = logging.getLogger(__name__)
+
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "resources" / "configuration.json"
 DEFAULT_CIPHER_PORT = 49158
 DEFAULT_DISKIDENTIFIER_PORT = 49157
@@ -33,9 +35,12 @@ def _load_configuration() -> dict:
 	try:
 		with open(CONFIG_PATH, "r", encoding="utf-8-sig") as config_file:
 			config = json.load(config_file)
+		logger.info("Configuration loaded from %s", CONFIG_PATH)
 	except json.JSONDecodeError as exc:
+		logger.error("Configuration file contains invalid JSON: %s", exc)
 		raise CipherCliError("Configuration file contains invalid JSON.") from exc
 	except OSError as exc:
+		logger.error("Failed to read configuration file: %s", exc)
 		raise CipherCliError("Failed to read configuration file.") from exc
 
 	if not isinstance(config, dict):
@@ -83,9 +88,13 @@ def _test_port_open(host: str, port: int, timeout: float = 2.0) -> bool:
 def _resolve_service_port(service_name: str, config_port: int, servicehandler_port: int, servicehandler_enabled: bool) -> int:
 	"""Resolve a service port: try the configured port first, then fall back to ServiceHandler if enabled."""
 	if _test_port_open(LOOPBACK_HOST, config_port):
+		logger.info("Using configured port %d for %s", config_port, service_name)
 		return config_port
 
+	logger.warning("Configured port %d for %s is unreachable", config_port, service_name)
+
 	if servicehandler_enabled:
+		logger.info("Querying ServiceHandler for %s port", service_name)
 		try:
 			response = _send_post_json(PostRequest(
 				url=f"http://{LOOPBACK_HOST}:{servicehandler_port}/api/question/service",
@@ -95,6 +104,7 @@ def _resolve_service_port(service_name: str, config_port: int, servicehandler_po
 			if response.status_code == 200 and isinstance(response.json_body, dict):
 				port = response.json_body.get("port")
 				if isinstance(port, int) and 1 <= port <= 65535:
+					logger.info("Resolved %s port %d via ServiceHandler", service_name, port)
 					return port
 		except CipherCliError:
 			pass
@@ -140,6 +150,7 @@ def _join_disk_root_and_suffix(disk_root: str, suffix: str) -> Path:
 
 def _send_post_json(http_request: PostRequest) -> PostResponse:
 	"""Send a JSON POST request and normalize the response."""
+	logger.debug("Sending POST request to %s", http_request.url)
 	request_headers = {
 		"Content-Type": "application/json",
 		"Accept": "application/json",
@@ -159,6 +170,7 @@ def _send_post_json(http_request: PostRequest) -> PostResponse:
 			response_body_bytes = response.read()
 			response_body = response_body_bytes.decode("utf-8", errors="replace")
 			parsed_json = _try_parse_json(response_body)
+			logger.debug("POST response %d from %s", response.status, http_request.url)
 			return PostResponse(
 				status_code=response.status,
 				body=response_body,
@@ -167,6 +179,7 @@ def _send_post_json(http_request: PostRequest) -> PostResponse:
 	except error.HTTPError as exc:
 		error_body_bytes = exc.read()
 		error_body = error_body_bytes.decode("utf-8", errors="replace")
+		logger.debug("POST HTTP error %d from %s", exc.code, http_request.url)
 		return PostResponse(
 			status_code=exc.code,
 			body=error_body,
@@ -178,6 +191,7 @@ def _send_post_json(http_request: PostRequest) -> PostResponse:
 
 def _send_get_json(http_request: GetRequest, body: dict | None = None) -> GetResponse:
 	"""Send a JSON GET request and normalize the response."""
+	logger.debug("Sending GET request to %s", http_request.url)
 	request_headers = {
 		"Content-Type": "application/json",
 		"Accept": "application/json",
@@ -198,6 +212,7 @@ def _send_get_json(http_request: GetRequest, body: dict | None = None) -> GetRes
 			response_body_bytes = response.read()
 			response_body = response_body_bytes.decode("utf-8", errors="replace")
 			parsed_json = _try_parse_json(response_body)
+			logger.debug("GET response %d from %s", response.status, http_request.url)
 			return GetResponse(
 				status_code=response.status,
 				body=response_body,
@@ -206,6 +221,7 @@ def _send_get_json(http_request: GetRequest, body: dict | None = None) -> GetRes
 	except error.HTTPError as exc:
 		error_body_bytes = exc.read()
 		error_body = error_body_bytes.decode("utf-8", errors="replace")
+		logger.debug("GET HTTP error %d from %s", exc.code, http_request.url)
 		return GetResponse(
 			status_code=exc.code,
 			body=error_body,
@@ -228,6 +244,7 @@ def _try_parse_json(payload_text: str) -> dict | list | str | int | float | bool
 
 def _resolve_ultimate_path_to_raw(path_text: str, diskidentifier_port: int) -> Path:
 	"""Resolve an ultimate path to a raw absolute path by calling DiskIdentifier."""
+	logger.debug("Resolving ultimate path: %s", path_text)
 	disk_hash, suffix = _path_suffix_without_disk_hash(path_text)
 	locate_request = GetRequest(
 		url=f"http://{LOOPBACK_HOST}:{diskidentifier_port}/api/locate/disk",
@@ -254,6 +271,7 @@ def _resolve_ultimate_path_to_raw(path_text: str, diskidentifier_port: int) -> P
 	resolved = raw_path.resolve(strict=False)
 	if not resolved.is_absolute():
 		raise CipherCliError("Resolved path is not absolute.")
+	logger.debug("Resolved ultimate path to: %s", resolved)
 	return resolved
 
 
@@ -317,6 +335,8 @@ def _run_ck_mode(args: argparse.Namespace, cipher_port: int, diskidentifier_port
 		args.file_name,
 	)
 
+	logger.info("Creating key at %s", directory_path / file_name)
+
 	payload = {
 		"directory_path": str(directory_path),
 		"file_name": file_name,
@@ -330,6 +350,7 @@ def _run_ck_mode(args: argparse.Namespace, cipher_port: int, diskidentifier_port
 	response = _send_post_json(post_request)
 
 	if response.status_code == 201:
+		logger.info("Key created successfully at %s", directory_path / file_name)
 		print(f"Key created: {directory_path / file_name}")
 		return 0
 
@@ -345,6 +366,7 @@ def _run_ck_mode(args: argparse.Namespace, cipher_port: int, diskidentifier_port
 
 def _run_health_mode(cipher_port: int) -> int:
 	"""Execute health mode by querying the Cipher health endpoint."""
+	logger.info("Querying Cipher health endpoint")
 	get_request = GetRequest(
 		url=f"http://{LOOPBACK_HOST}:{cipher_port}/api/health",
 		timeout=15.0,
@@ -411,7 +433,11 @@ def _poll_task_until_done(task_id: str, cipher_port: int, operation: str) -> int
 	task_url = f"http://{LOOPBACK_HOST}:{cipher_port}/api/task/{task_id}"
 
 	last_status: str | None = None
+	attempt = 0
 	while True:
+		attempt += 1
+		logger.debug("Polling task %s (attempt %d)", task_id, attempt)
+
 		if time.time() > deadline:
 			print(
 				f"Error: Task timed out after {max_wait_seconds} seconds. Use task id {task_id} to check status later.",
@@ -451,6 +477,7 @@ def _poll_task_until_done(task_id: str, cipher_port: int, operation: str) -> int
 						output_path = file_entry.get("output_path")
 						if isinstance(input_path, str) and isinstance(output_path, str):
 							print(f"{input_path} -> {output_path}")
+			logger.info("%s task %s completed", operation.capitalize(), task_id)
 			print(f"{operation.capitalize()} completed.")
 			return 0
 
@@ -545,6 +572,9 @@ def _run_cipher_mode(
 			payload["output_file_path"] = normalized_output_paths[0]
 		else:
 			payload["output_file_paths"] = normalized_output_paths
+
+	logger.info("Queuing %s task for %d file(s)", operation, len(file_paths))
+
 	post_request = PostRequest(
 		url=f"http://{LOOPBACK_HOST}:{cipher_port}{endpoint}",
 		body=json.dumps(payload).encode("utf-8"),
@@ -567,6 +597,7 @@ def _run_cipher_mode(
 		return 1
 
 	task_id = task_id.strip()
+	logger.info("Task %s queued successfully for %s", task_id, operation)
 	print(f"Task queued: {task_id}")
 	return _poll_task_until_done(task_id, cipher_port, operation)
 
@@ -669,7 +700,8 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
 	"""Program entry point."""
-	logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
+	logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(name)s: %(message)s')
+	logger.info("Starting CipherCLI")
 
 	try:
 		config = _load_configuration()
@@ -688,6 +720,7 @@ def main() -> int:
 
 		cipher_port = _resolve_service_port("Cipher", config_cipher_port, servicehandler_port, servicehandler_enabled)
 		diskidentifier_port = _resolve_service_port("DiskIdentifier", config_diskidentifier_port, servicehandler_port, servicehandler_enabled)
+		logger.info("Resolved ports: cipher=%d, diskidentifier=%d", cipher_port, diskidentifier_port)
 	except CipherCliError as exc:
 		print(f"Error: {exc}", file=sys.stderr)
 		return 1

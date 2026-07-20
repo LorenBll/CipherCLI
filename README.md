@@ -1,13 +1,25 @@
 # CipherCLI
 
-CipherCLI is a local command-line client for the Cipher service. It can create keys, encrypt or decrypt files through the loopback HTTP API, and query the service health endpoint with `cip health`.
+CipherCLI is a local command-line client for the Cipher encryption service. It can create keys, encrypt or decrypt files through the loopback HTTP API, and query the service health endpoint with `cip health`.
 
 ## About
+
 CipherCLI is designed to run on the same machine as [Cipher](https://www.github.com/LorenBll/Cipher). It talks to `127.0.0.1` for both the Cipher API and the [DiskIdentifier](https://www.github.com/LorenBll/DiskIdentifier) service used to resolve ultimate paths. The ports are resolved from `resources/configuration.json` and optionally through [ServiceHandler](https://www.github.com/LorenBll/ServiceHandler).
 
 CipherCLI is a client for the web-service Cipher (https://www.github.com/LorenBll/Cipher).
 
+**Features:**
+
+- **Key creation** — generate encryption keys through the Cipher API.
+- **File encryption** — encrypt one or more files with support for batch operations via `--files-list`.
+- **File decryption** — decrypt one or more files with the same batch and output options.
+- **Ultimate path resolution** — use DiskIdentifier to resolve disk hashes to raw absolute paths.
+- **ServiceHandler fallback** — when enabled, falls back to ServiceHandler for port discovery if the configured port is unreachable.
+- **Polling task tracking** — after queuing an encrypt or decrypt job, polls the task endpoint until completion or failure.
+- **Dependency-free** — uses only the Python standard library; no external packages required.
+
 ## Setup
+
 1. CipherCLI has no external Python dependencies — it uses only the standard library. If you also run the Cipher service locally, install its dependencies with `pip install -r requirements.txt`.
 2. Optionally run `scripts\setup.bat` (Windows) or `bash scripts/setup.sh` (Unix) to create a virtual environment and install dependencies.
 3. Make sure the Cipher service is running locally before using `c`, `d`, or `health`.
@@ -16,6 +28,7 @@ CipherCLI is a client for the web-service Cipher (https://www.github.com/LorenBl
 6. Keep the project structure intact so the CLI can find `resources/` and `src/`.
 
 ## Run
+
 1. Windows: run `scripts\cip.bat`.
 2. Unix-like systems: run `bash scripts/cip.sh`.
 3. Manual: run `python src/main.py` from the project root.
@@ -23,6 +36,7 @@ CipherCLI is a client for the web-service Cipher (https://www.github.com/LorenBl
 ## Usage
 
 ### `cip ck <path> [file_name]`
+
 Create a new key file through `POST /api/key`.
 
 - `path` can be either:
@@ -37,6 +51,7 @@ cip ck C:\Cipher\keys mykey.key
 ```
 
 ### `cip c <key_path> <file_path...> [--encrypt-file-name] [--overwrite-file] [--output-file-path|--output-file-paths|--output-dir] [--files-list <path>]`
+
 Encrypt one or more files through `POST /api/encrypt`.
 
 - `key_path` must reference an existing key file.
@@ -52,6 +67,7 @@ Encrypt one or more files through `POST /api/encrypt`.
 - After the task is queued, the CLI polls `GET /api/task/<task_id>` until the job finishes.
 
 ### `cip d <key_path> <file_path...> [--decrypt-file-name] [--overwrite-file] [--output-file-path|--output-file-paths|--output-dir] [--files-list <path>]`
+
 Decrypt one or more files through `POST /api/decrypt`.
 
 - `key_path` must reference an existing key file.
@@ -67,18 +83,24 @@ Decrypt one or more files through `POST /api/decrypt`.
 - The CLI polls task status until the job completes or fails.
 
 ### `cip health`
+
 Query `GET /api/health` on the local Cipher service and print the returned data.
 
 This is useful for checking the configured port, task counts, host information, and other health metadata exposed by the service.
 
 ## Configuration
+
 The CLI reads `resources/configuration.json` for these settings:
-- `cipherPort`: port used for the Cipher API (default `49158`).
-- `diskidentifierPort`: port used for DiskIdentifier (default `49157`).
-- `servicehandlerEnabled`: when `true`, CipherCLI tries the configured port first and falls back to ServiceHandler if the service is unreachable (default `false`).
-- `servicehandlerPort`: port used for ServiceHandler (default `49155`).
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `cipherPort` | `49158` | Port used for the Cipher API. |
+| `diskidentifierPort` | `49157` | Port used for DiskIdentifier. |
+| `servicehandlerEnabled` | `false` | When `true`, falls back to ServiceHandler if the configured port is unreachable. |
+| `servicehandlerPort` | `49155` | Port used for ServiceHandler. |
 
 ## Notes
+
 - Paths may be provided as raw absolute paths or as ultimate paths when DiskIdentifier is available.
 - The CLI is local-only and expects services to be reachable on the loopback interface.
 - All outbound HTTP requests use `Connection: close`, matching the server-side connection policy.
@@ -89,10 +111,13 @@ The CLI reads `resources/configuration.json` for these settings:
 ---
 
 ## Support
+
 - Open an issue on [GitHub](https://github.com/LorenBll/CipherCLI/issues) for bug reports, feature requests, or help.
 
 ## License
+
 - [LICENSE](LICENSE)
 
 ## Author
+
 - [LorenBll](https://github.com/LorenBll)

@@ -44,18 +44,15 @@ source .venv/bin/activate
 
 # Install dependencies.
 python -m pip install --quiet --upgrade pip
-REQ_FILE=".requirements.setup.txt"
-trap 'rm -f "$REQ_FILE"' EXIT
-grep -vi '^brotli==' requirements.txt > "$REQ_FILE"
-python -m pip install --quiet -r "$REQ_FILE" || { echo "ERROR: Failed to install dependencies."; exit 1; }
+python -m pip install --quiet -r requirements.txt || { echo "ERROR: Failed to install dependencies."; exit 1; }
 echo "Dependencies installed."
 
 # Check configuration.
 if [ ! -f "resources/configuration.json" ]; then
-  echo "WARNING: Create resources/configuration.json before running ServiceHub."
+  echo "WARNING: Create resources/configuration.json before running CipherCLI."
 fi
 
 echo ""
 echo "CipherCLI setup complete."
 echo ""
-echo "Next: python src/main.py ck /absolute/path/to/key.key"
+echo "Next: chmod +x scripts/cip.sh && ./scripts/cip.sh"
