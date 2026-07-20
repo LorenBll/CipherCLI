@@ -113,14 +113,14 @@ def _looks_like_ultimate_path(path_text: str) -> bool:
 	if not trimmed:
 		return False
 
-	disk_hash = trimmed.split("/", 1)[0]
+	disk_hash = trimmed.split("::", 1)[0]
 	return bool(re.fullmatch(r"[0-9a-fA-F]{64}", disk_hash))
 
 
 def _path_suffix_without_disk_hash(path_text: str) -> tuple[str, str]:
 	"""Split ultimate path into (disk_hash, suffix)."""
 	normalized = path_text.strip().replace("\\", "/")
-	disk_hash, _, suffix = normalized.partition("/")
+	disk_hash, _, suffix = normalized.partition("::")
 	return disk_hash, suffix
 
 
