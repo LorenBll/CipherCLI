@@ -548,9 +548,11 @@ def _run_cipher_mode(
 			)
 
 	normalized_output_paths: list[str] | None = None
+	output_dir_normalized: Path | None = None
 	if output_dir_arg:
-		output_dir = _normalize_cli_path(output_dir_arg, diskidentifier_port)
-		normalized_output_paths = [str(output_dir / path.name) for path in file_paths]
+		output_dir_normalized = _normalize_cli_path(output_dir_arg, diskidentifier_port)
+		if not file_name_flag_value:
+			normalized_output_paths = [str(output_dir_normalized / path.name) for path in file_paths]
 	elif output_file_paths_arg:
 		if len(output_file_paths_arg) != len(file_paths):
 			raise CipherCliError("The number of --output-file-paths must match the number of input files.")
@@ -566,6 +568,9 @@ def _run_cipher_mode(
 		file_name_flag_field: file_name_flag_value,
 		"overwrite_file": overwrite,
 	}
+
+	if output_dir_normalized is not None and file_name_flag_value:
+		payload["output_dir"] = str(output_dir_normalized)
 
 	if normalized_output_paths is not None:
 		if len(normalized_output_paths) == 1:
