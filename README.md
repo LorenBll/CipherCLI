@@ -35,6 +35,8 @@ CipherCLI is a client for the web-service Cipher (https://www.github.com/LorenBl
 
 ## Usage
 
+All commands accept the `-v` or `--verbose` flag to enable detailed logging output for debugging.
+
 ### `cip ck <path> [file_name]`
 
 Create a new key file through `POST /api/key`.

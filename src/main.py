@@ -695,13 +695,23 @@ def _build_parser() -> argparse.ArgumentParser:
 	parser_health = subparsers.add_parser("health", help="Show service health.")
 	parser_health.description = "Show service health."
 
+	parser.add_argument(
+		"-v", "--verbose",
+		action="store_true",
+		help="Enable verbose logging output.",
+	)
+
 	return parser
 
 
 def main() -> int:
 	"""Program entry point."""
-	logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(name)s: %(message)s')
-	logger.info("Starting CipherCLI")
+	parser = _build_parser()
+	early_args, _ = parser.parse_known_args()
+
+	if early_args.verbose:
+		logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(name)s: %(message)s')
+		logger.info("Starting CipherCLI")
 
 	try:
 		config = _load_configuration()
@@ -720,12 +730,12 @@ def main() -> int:
 
 		cipher_port = _resolve_service_port("Cipher", config_cipher_port, servicehandler_port, servicehandler_enabled)
 		diskidentifier_port = _resolve_service_port("DiskIdentifier", config_diskidentifier_port, servicehandler_port, servicehandler_enabled)
-		logger.info("Resolved ports: cipher=%d, diskidentifier=%d", cipher_port, diskidentifier_port)
+		if early_args.verbose:
+			logger.info("Resolved ports: cipher=%d, diskidentifier=%d", cipher_port, diskidentifier_port)
 	except CipherCliError as exc:
 		print(f"Error: {exc}", file=sys.stderr)
 		return 1
 
-	parser = _build_parser()
 	if len(sys.argv) == 1:
 		print("Error: a mode is required.", file=sys.stderr)
 		parser.print_help()
