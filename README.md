@@ -29,9 +29,20 @@ CipherCLI is a client for the web-service Cipher (https://www.github.com/LorenBl
 
 ## Run
 
-1. Windows: run `scripts\cip.bat`.
-2. Unix-like systems: run `bash scripts/cip.sh`.
-3. Manual: run `python src/main.py` from the project root.
+1. Windows: run `scripts\cip.bat` (add `--verbose` for debug output).
+2. Unix-like: run `bash scripts/cip.sh` (add `--verbose` for debug output).
+3. Manual: run `python src/main.py` from the project root (add `--verbose` for debug output).
+
+## Configuration
+
+The CLI reads `resources/configuration.json` for these settings:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `cipherPort` | `49158` | Port used for the Cipher API. |
+| `diskidentifierPort` | `49157` | Port used for DiskIdentifier. |
+| `servicehandlerEnabled` | `false` | When `true`, falls back to ServiceHandler if the configured port is unreachable. |
+| `servicehandlerPort` | `49155` | Port used for ServiceHandler. |
 
 ## Usage
 
@@ -89,17 +100,6 @@ Decrypt one or more files through `POST /api/decrypt`.
 Query `GET /api/health` on the local Cipher service and print the returned data.
 
 This is useful for checking the configured port, task counts, host information, and other health metadata exposed by the service.
-
-## Configuration
-
-The CLI reads `resources/configuration.json` for these settings:
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `cipherPort` | `49158` | Port used for the Cipher API. |
-| `diskidentifierPort` | `49157` | Port used for DiskIdentifier. |
-| `servicehandlerEnabled` | `false` | When `true`, falls back to ServiceHandler if the configured port is unreachable. |
-| `servicehandlerPort` | `49155` | Port used for ServiceHandler. |
 
 ## Notes
 
