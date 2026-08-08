@@ -16,22 +16,22 @@ CipherCLI is a client for the web-service Cipher (https://www.github.com/LorenBl
 - **Ultimate path resolution** — use DiskIdentifier to resolve disk hashes to raw absolute paths.
 - **ServiceHandler fallback** — when enabled, falls back to ServiceHandler for port discovery if the configured port is unreachable.
 - **Polling task tracking** — after queuing an encrypt or decrypt job, polls the task endpoint until completion or failure.
-- **Dependency-free** — uses only the Python standard library; no external packages required.
+- **Standard library core** — CipherCLI itself uses only the Python standard library; no external packages required for the CLI. The project ships a `requirements.txt` (containing Flask and beautifulsoup4) for the Cipher web service, which is installed automatically by the setup scripts.
 
 ## Setup
 
-1. CipherCLI has no external Python dependencies — it uses only the standard library. If you also run the Cipher service locally, install its dependencies with `pip install -r requirements.txt`.
-2. Optionally run `scripts\setup.bat` (Windows) or `bash scripts/setup.sh` (Unix) to create a virtual environment and install dependencies.
-3. Make sure the Cipher service is running locally before using `c`, `d`, or `health`.
+1. **Python 3.10+ is required.** CipherCLI itself uses only the Python standard library — no external packages are needed for the CLI. The `requirements.txt` file contains dependencies for the Cipher web service and is installed automatically by the setup scripts.
+2. Optionally run `scripts\setup.bat` (Windows) or `bash scripts/setup.sh` (Unix) to create a virtual environment and install all dependencies (including those from `requirements.txt`).
+3. Make sure the Cipher service is running locally before using `ck`, `c`, `d`, or `health`.
 4. DiskIdentifier is optional — CipherCLI works without it. If you want to use ultimate paths, run DiskIdentifier locally so CipherCLI can resolve them via the configured `diskidentifierPort`.
 5. ServiceHandler is optional — when `servicehandlerEnabled` is `true`, CipherCLI first tries the configured ports and falls back to querying ServiceHandler if the service is unreachable on the configured port.
 6. Keep the project structure intact so the CLI can find `resources/` and `src/`.
 
 ## Run
 
-1. Windows: run `scripts\cip.bat` (add `--verbose` for debug output).
-2. Unix-like: run `bash scripts/cip.sh` (add `--verbose` for debug output).
-3. Manual: run `python src/main.py` from the project root (add `--verbose` for debug output).
+1. Windows: run `scripts\cip.bat` (add `--verbose` before the mode for debug output).
+2. Unix-like: run `bash scripts/cip.sh` (add `--verbose` before the mode for debug output).
+3. Manual: run `python src/main.py` from the project root (add `--verbose` before the mode for debug output).
 
 ## Configuration
 
@@ -46,7 +46,7 @@ The CLI reads `resources/configuration.json` for these settings:
 
 ## Usage
 
-All commands accept the `-v` or `--verbose` flag to enable detailed logging output for debugging.
+All commands accept the `-v` or `--verbose` flag to enable detailed logging output for debugging. The flag must be placed before the mode, e.g. `cip -v health`.
 
 ### `cip ck <path> [file_name]`
 
@@ -74,7 +74,7 @@ Encrypt one or more files through `POST /api/encrypt`.
 - `--overwrite-file` writes encrypted content into the source file (in-place). Applies to all input files. Cannot be combined with `--output-file-path`, `--output-file-paths`, or `--output-dir`.
 - `--output-file-path` is a single absolute output path for one input file. Cannot be combined with `--encrypt-file-name`, `--overwrite-file`, or `--output-dir`.
 - `--output-file-paths` is a list of absolute paths, one per input file. Cannot be combined with `--encrypt-file-name`, `--overwrite-file`, or `--output-dir`.
-- `--output-dir` is an output directory; the CLI generates `output_dir / input_file.name` for each input file and sends them as `output_file_paths`. Cannot be combined with `--overwrite-file`, `--output-file-path`, or `--output-file-paths`. Compatible with `--encrypt-file-name`.
+- `--output-dir` is an output directory. Without `--encrypt-file-name`, the CLI expands it to one output path per input file (`output_dir / input_file.name`) and sends them to the Cipher API; with `--encrypt-file-name`, the CLI sends `output_dir` directly to the Cipher API instead. Cannot be combined with `--overwrite-file`, `--output-file-path`, or `--output-file-paths`. Compatible with `--encrypt-file-name`.
 - Note: when none of `--encrypt-file-name`, `--overwrite-file`, `--output-file-path`, `--output-file-paths`, or `--output-dir` are provided and `--encrypt-file-name`/`--overwrite-file` are false, you must supply one of the output path options per the Cipher API requirements.
 - All of the flags above (`--encrypt-file-name`, `--overwrite-file`, `--output-dir`) apply globally to every file in the batch, whether specified as positional arguments or via `--files-list`.
 - After the task is queued, the CLI polls `GET /api/task/<task_id>` until the job finishes.
@@ -90,7 +90,7 @@ Decrypt one or more files through `POST /api/decrypt`.
 - `--overwrite-file` writes decrypted content into the source file (in-place). Applies to all input files. Cannot be combined with `--output-file-path`, `--output-file-paths`, or `--output-dir`.
 - `--output-file-path` is a single absolute output path for one input file. Cannot be combined with `--decrypt-file-name`, `--overwrite-file`, or `--output-dir`.
 - `--output-file-paths` is a list of absolute paths, one per input file. Cannot be combined with `--decrypt-file-name`, `--overwrite-file`, or `--output-dir`.
-- `--output-dir` is an output directory; the CLI generates `output_dir / input_file.name` for each input file and sends them as `output_file_paths`. Cannot be combined with `--overwrite-file`, `--output-file-path`, or `--output-file-paths`. Compatible with `--decrypt-file-name`.
+- `--output-dir` is an output directory. Without `--decrypt-file-name`, the CLI expands it to one output path per input file (`output_dir / input_file.name`) and sends them to the Cipher API; with `--decrypt-file-name`, the CLI sends `output_dir` directly to the Cipher API instead. Cannot be combined with `--overwrite-file`, `--output-file-path`, or `--output-file-paths`. Compatible with `--decrypt-file-name`.
 - Note: when none of `--decrypt-file-name`, `--overwrite-file`, `--output-file-path`, `--output-file-paths`, or `--output-dir` are provided and `--decrypt-file-name`/`--overwrite-file` are false, you must supply one of the output path options per the Cipher API requirements.
 - All of the flags above (`--decrypt-file-name`, `--overwrite-file`, `--output-dir`) apply globally to every file in the batch, whether specified as positional arguments or via `--files-list`.
 - The CLI polls task status until the job completes or fails.
