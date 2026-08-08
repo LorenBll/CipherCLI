@@ -9,6 +9,7 @@ import re
 import socket
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 from urllib import error, request
 
@@ -106,8 +107,8 @@ def _resolve_service_port(service_name: str, config_port: int, servicehandler_po
 				if isinstance(port, int) and 1 <= port <= 65535:
 					logger.info("Resolved %s port %d via ServiceHandler", service_name, port)
 					return port
-		except CipherCliError:
-			pass
+		except CipherCliError as exc:
+			logger.warning("ServiceHandler resolution failed for %s: %s", service_name, exc)
 
 	return config_port
 
@@ -348,6 +349,7 @@ def _run_ck_mode(args: argparse.Namespace, cipher_port: int, diskidentifier_port
 	)
 
 	response = _send_post_json(post_request)
+	logger.info("Key creation request returned status %d", response.status_code)
 
 	if response.status_code == 201:
 		logger.info("Key created successfully at %s", directory_path / file_name)
@@ -357,10 +359,10 @@ def _run_ck_mode(args: argparse.Namespace, cipher_port: int, diskidentifier_port
 	if isinstance(response.json_body, dict):
 		error_message = response.json_body.get("error")
 		if isinstance(error_message, str) and error_message.strip():
-			print(f"Error: {error_message.strip()}", file=sys.stderr)
+			_report_error(error_message.strip())
 			return 1
 
-	print("Error: Key creation failed.", file=sys.stderr)
+	_report_error("Key creation failed.")
 	return 1
 
 
@@ -372,10 +374,11 @@ def _run_health_mode(cipher_port: int) -> int:
 		timeout=15.0,
 	)
 	response = _send_get_json(get_request)
+	logger.info("Health request returned status %d", response.status_code)
 
 	if response.status_code != 200:
 		error_message = _extract_error_message(response.json_body, "Failed to query service health.")
-		print(f"Error: {error_message}", file=sys.stderr)
+		_report_error(error_message)
 		return 1
 
 	if response.json_body is not None:
@@ -393,6 +396,12 @@ def _extract_error_message(payload: object, fallback: str) -> str:
 		if isinstance(error_text, str) and error_text.strip():
 			return error_text.strip()
 	return fallback
+
+
+def _report_error(message: str) -> None:
+	"""Log an error and print it to stderr so it is surfaced to the user."""
+	logger.error("%s", message)
+	print(f"Error: {message}", file=sys.stderr)
 
 
 def _parse_files_list(file_path: str) -> list[str]:
@@ -439,29 +448,29 @@ def _poll_task_until_done(task_id: str, cipher_port: int, operation: str) -> int
 		logger.debug("Polling task %s (attempt %d)", task_id, attempt)
 
 		if time.time() > deadline:
-			print(
-				f"Error: Task timed out after {max_wait_seconds} seconds. Use task id {task_id} to check status later.",
-				file=sys.stderr,
+			_report_error(
+				f"Task timed out after {max_wait_seconds} seconds. Use task id {task_id} to check status later."
 			)
 			return 1
 
 		response = _send_get_json(GetRequest(url=task_url, timeout=15.0))
 		if response.status_code != 200:
 			error_message = _extract_error_message(response.json_body, "Failed to query task status.")
-			print(f"Error: {error_message}", file=sys.stderr)
+			_report_error(error_message)
 			return 1
 
 		if not isinstance(response.json_body, dict):
-			print("Error: Task endpoint returned an invalid payload.", file=sys.stderr)
+			_report_error("Task endpoint returned an invalid payload.")
 			return 1
 
 		status = response.json_body.get("status")
 		if not isinstance(status, str) or not status.strip():
-			print("Error: Task status is missing in server response.", file=sys.stderr)
+			_report_error("Task status is missing in server response.")
 			return 1
 
 		status = status.strip()
 		if status != last_status:
+			logger.info("Task %s status: %s", task_id, status)
 			print(f"Task {task_id}: {status}")
 			last_status = status
 
@@ -484,9 +493,9 @@ def _poll_task_until_done(task_id: str, cipher_port: int, operation: str) -> int
 		if status == "failed":
 			error_message = response.json_body.get("error")
 			if isinstance(error_message, str) and error_message.strip():
-				print(f"Error: {error_message.strip()}", file=sys.stderr)
+				_report_error(error_message.strip())
 			else:
-				print(f"Error: {operation} task failed.", file=sys.stderr)
+				_report_error(f"{operation} task failed.")
 			return 1
 
 		time.sleep(poll_interval_seconds)
@@ -587,18 +596,19 @@ def _run_cipher_mode(
 	)
 
 	response = _send_post_json(post_request)
+	logger.info("%s request returned status %d", operation, response.status_code)
 	if response.status_code != 202:
 		error_message = _extract_error_message(response.json_body, f"Failed to queue {operation} task.")
-		print(f"Error: {error_message}", file=sys.stderr)
+		_report_error(error_message)
 		return 1
 
 	if not isinstance(response.json_body, dict):
-		print("Error: Cipher service returned an invalid task payload.", file=sys.stderr)
+		_report_error("Cipher service returned an invalid task payload.")
 		return 1
 
 	task_id = response.json_body.get("task_id")
 	if not isinstance(task_id, str) or not task_id.strip():
-		print("Error: Cipher service did not return a task id.", file=sys.stderr)
+		_report_error("Cipher service did not return a task id.")
 		return 1
 
 	task_id = task_id.strip()
@@ -712,11 +722,6 @@ def _build_parser() -> argparse.ArgumentParser:
 def main() -> int:
 	"""Program entry point."""
 	parser = _build_parser()
-	early_args, _ = parser.parse_known_args()
-
-	if early_args.verbose:
-		logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(name)s: %(message)s')
-		logger.info("Starting CipherCLI")
 
 	try:
 		config = _load_configuration()
@@ -735,14 +740,13 @@ def main() -> int:
 
 		cipher_port = _resolve_service_port("Cipher", config_cipher_port, servicehandler_port, servicehandler_enabled)
 		diskidentifier_port = _resolve_service_port("DiskIdentifier", config_diskidentifier_port, servicehandler_port, servicehandler_enabled)
-		if early_args.verbose:
-			logger.info("Resolved ports: cipher=%d, diskidentifier=%d", cipher_port, diskidentifier_port)
+		logger.info("Resolved ports: cipher=%d, diskidentifier=%d", cipher_port, diskidentifier_port)
 	except CipherCliError as exc:
-		print(f"Error: {exc}", file=sys.stderr)
+		_report_error(str(exc))
 		return 1
 
 	if len(sys.argv) == 1:
-		print("Error: a mode is required.", file=sys.stderr)
+		_report_error("a mode is required.")
 		parser.print_help()
 		return 1
 
@@ -752,7 +756,7 @@ def main() -> int:
 		try:
 			return _run_ck_mode(args, cipher_port, diskidentifier_port)
 		except CipherCliError as exc:
-			print(f"Error: {exc}", file=sys.stderr)
+			_report_error(str(exc))
 			return 1
 
 	if args.mode == "c":
@@ -775,7 +779,7 @@ def main() -> int:
 				bool(args.encrypt_file_name),
 			)
 		except CipherCliError as exc:
-			print(f"Error: {exc}", file=sys.stderr)
+			_report_error(str(exc))
 			return 1
 
 	if args.mode == "d":
@@ -798,14 +802,14 @@ def main() -> int:
 				bool(args.decrypt_file_name),
 			)
 		except CipherCliError as exc:
-			print(f"Error: {exc}", file=sys.stderr)
+			_report_error(str(exc))
 			return 1
 
 	if args.mode == "health":
 		try:
 			return _run_health_mode(cipher_port)
 		except CipherCliError as exc:
-			print(f"Error: {exc}", file=sys.stderr)
+			_report_error(str(exc))
 			return 1
 
 	parser.print_help()
@@ -813,4 +817,20 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+	parser = _build_parser()
+	early_args, _ = parser.parse_known_args()
+
+	log_dir = Path(__file__).resolve().parent.parent / "logs"
+	log_dir.mkdir(exist_ok=True)
+	log_file = log_dir / f"{datetime.now().strftime('%d-%m-%Y_%H.%M.%S')}.log"
+	logging.basicConfig(
+		level=logging.DEBUG if early_args.verbose else logging.INFO,
+		format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+		handlers=[
+			logging.StreamHandler(),
+			logging.FileHandler(log_file, encoding="utf-8"),
+		],
+	)
+	logger.info("CipherCLI invoked: %s", " ".join(sys.argv))
+
 	sys.exit(main())
