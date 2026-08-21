@@ -29,9 +29,9 @@ CipherCLI is a client for the web-service Cipher (https://www.github.com/LorenBl
 
 ## Run
 
-1. Windows: run `scripts\cip.bat` (add `--verbose` before the mode for debug output).
-2. Unix-like: run `bash scripts/cip.sh` (add `--verbose` before the mode for debug output).
-3. Manual: run `python src/main.py` from the project root (add `--verbose` before the mode for debug output).
+1. Windows: run `scripts\cip.bat` (add `--debug` before the mode for debug logging).
+2. Unix-like: run `bash scripts/cip.sh` (add `--debug` before the mode for debug logging).
+3. Manual: run `python src/main.py` from the project root (add `--debug` before the mode for debug logging).
 
 ## Configuration
 
@@ -46,7 +46,7 @@ The CLI reads `resources/configuration.json` for these settings:
 
 ## Usage
 
-All commands accept the `-v` or `--verbose` flag to enable detailed logging output for debugging. The flag must be placed before the mode, e.g. `cip -v health`.
+All commands accept the `--debug` flag to enable debug logging. The flag must be placed before the mode, e.g. `cip --debug health`. Without `--debug`, only INFO and above events are logged; with `--debug`, DEBUG events are logged too.
 
 ### `cip ck <path> [file_name]`
 
@@ -107,6 +107,7 @@ This is useful for checking the configured port, task counts, host information, 
 - The CLI is local-only and expects services to be reachable on the loopback interface.
 - All outbound HTTP requests use `Connection: close`, matching the server-side connection policy.
 - The Cipher service enforces local-device-only access. CipherCLI connects via `127.0.0.1`, so it is always permitted.
+- Logging writes JSON log events to `logs/`, one file per run (`logs/DD-MM-YYYY_HH.MM.SS.json`). Each event contains `timestamp`, `type` (`ERROR`, `WARN`, `INFO`, `DEBUG`), `title`, `data`, and a `hash`. Log files older than 14 days are removed automatically at startup.
 - DiskIdentifier is not required for CipherCLI to function. When DiskIdentifier is running and reachable on the loopback interface (see `diskidentifierPort` in resources/configuration.json), CipherCLI can resolve "ultimate" paths by querying DiskIdentifier.
 - ServiceHandler is not required either. When `servicehandlerEnabled` is `true`, CipherCLI first tries the configured `cipherPort` and `diskidentifierPort`. If a service is unreachable on its configured port, CipherCLI queries ServiceHandler for an alternative port.
 
